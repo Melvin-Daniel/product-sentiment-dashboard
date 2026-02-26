@@ -1,0 +1,17 @@
+[
+  {
+    "review": "Great product, very useful",
+    "rating": 5,
+    "sentiment": "positive"
+  },
+  {
+    "review": "Average quality",
+    "rating": 3,
+    "sentiment": "neutral"
+  },
+  {
+    "review": "Not worth the price",
+    "rating": 2,
+    "sentiment": "negative"
+  }
+]

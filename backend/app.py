@@ -1,25 +1,18 @@
-from flask import Flask, jsonify
+from flask import Flask
 from flask_cors import CORS
+
+from routes.reviews import reviews_bp
+from routes.analytics import analytics_bp
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/reviews")
-def reviews():
-    return jsonify([
-        {"review_text": "Great phone", "rating": 5, "sentiment": "positive"},
-        {"review_text": "Battery is average", "rating": 3, "sentiment": "neutral"},
-        {"review_text": "Too expensive", "rating": 2, "sentiment": "negative"}
-    ])
+app.register_blueprint(reviews_bp)
+app.register_blueprint(analytics_bp)
 
-@app.route("/analytics")
-def analytics():
-    return jsonify({
-        "positive": 1,
-        "neutral": 1,
-        "negative": 1,
-        "avg_rating": 3.3
-    })
+@app.route("/health")
+def health():
+    return {"status": "Backend running"}
 
 if __name__ == "__main__":
     app.run(debug=True)
