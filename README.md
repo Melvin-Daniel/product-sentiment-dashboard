@@ -5,6 +5,7 @@ This project analyzes product reviews, classifies their sentiment, and visualize
 📌 Project Overview
 
 The Product Sentiment Analysis Dashboard is a web-based application designed to analyze customer product reviews and present sentiment insights visually.
+
 The system follows a modular, role-based architecture, where backend services, frontend UI, and visualization modules are developed independently and integrated using REST APIs.
 
 This project demonstrates real-world concepts such as API-driven architecture, frontend–backend integration, and data visualization.
@@ -105,6 +106,11 @@ Integrate NLP-based sentiment analysis
 
 Add database persistence
 
-Deploy application to the cloud
+Deploy the application to the cloud
 
 Enhance UI and analytics features
+
+✅ Conclusion
+
+The Product Sentiment Analysis Dashboard demonstrates a clean backend-driven architecture integrated with frontend visualization.
+The project is designed to be extensible, scalable, and suitable for real-world sentiment analysis use cases.
