@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Product Sentiment Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      display: flex;
+      gap: 40px;
+      margin-top: 30px;
+    }
+    .box {
+      flex: 1;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 10px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Product Sentiment Analysis Dashboard</h1>
+
+<p><b>Average Rating:</b> <span id="avgRating">-</span></p>
+
+<div class="container">
+  <div class="box">
+    <h3>Reviews</h3>
+    <ul id="reviewsList"></ul>
+  </div>
+
+  <div class="box">
+    <h3>Sentiment Distribution</h3>
+    <canvas id="sentimentChart"></canvas>
+  </div>
+</div>
+
+<script src="visualization/charts.js"></script>
+
+<script>
+  // Fetch reviews
+  fetch("http://127.0.0.1:5000/reviews")
+    .then(res => res.json())
+    .then(data => {
+      const list = document.getElementById("reviewsList");
+      data.forEach(r => {
+        const li = document.createElement("li");
+        li.innerHTML = `<b>${r.sentiment.toUpperCase()}</b> | ⭐ ${r.rating}<br>${r.review_text}`;
+        list.appendChild(li);
+      });
+    });
+
+  // Fetch analytics
+  fetch("http://127.0.0.1:5000/analytics")
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("avgRating").innerText = data.avg_rating;
+      renderSentimentChart(data);   // 👈 comes from charts.js
+    });
+</script>
+
+</body>
+</html>
