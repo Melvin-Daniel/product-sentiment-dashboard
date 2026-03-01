@@ -72,6 +72,18 @@
 
   // Fetch analytics
   fetch("http://127.0.0.1:5000/analytics")
+  .then(res => res.json())
+  .then(result => {
+
+    const sentiments = result.data.sentiment_count;
+    const rating = result.data.average_rating;
+
+    document.getElementById("avgRating").innerText = rating;
+
+    renderSentimentChart(sentiments);
+
+  });
+=======
     .then(res => res.json())
     .then(result => {
       const sentiments = result.data.sentiment_count;
