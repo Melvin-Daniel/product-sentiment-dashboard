@@ -22,21 +22,36 @@ function renderSentimentChart(sentiments) {
     new Chart(ctx, {
         type: "doughnut",
         data: {
-            labels: ["Positive", "Neutral", "Negative"],
-            datasets: [{
-                data: [
-                    sentiments.positive,
-                    sentiments.neutral,
-                    sentiments.negative
-                ],
-                backgroundColor: [
-                    "#4CAF50",
-                    "#FFC107",
-                    "#F44336"
-                ]
-            }]
+            new Chart(ctx, {
+    type: "doughnut",
+    data: {
+        labels: ["Positive", "Neutral", "Negative"],
+        datasets: [{
+            data: [
+                sentiments.positive,
+                sentiments.neutral,
+                sentiments.negative
+            ],
+            backgroundColor: [
+                "#4CAF50",
+                "#FFC107",
+                "#F44336"
+            ]
+        }]
+    },
+    options: {
+        plugins: {
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return context.label + " Reviews: " + context.raw;
+                    }
+                }
+            }
         }
-    });
+    }
+});
+           
 }
 
 function renderAvgRating(rating) {
