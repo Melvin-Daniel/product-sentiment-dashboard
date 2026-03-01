@@ -29,6 +29,11 @@
       border-bottom: 1px solid #ddd;
       padding-bottom: 5px;
     }
+    #insight {
+      margin-top: 10px;
+      font-weight: bold;
+      color: #444;
+    }
   </style>
 </head>
 <body>
@@ -36,6 +41,7 @@
 <h1>Product Sentiment Analysis Dashboard</h1>
 
 <p><b>Average Rating:</b> <span id="avgRating">-</span></p>
+<p id="insight"></p>
 
 <div class="container">
   <div class="box">
@@ -77,6 +83,16 @@
     renderSentimentChart(sentiments);
 
   });
+=======
+    .then(res => res.json())
+    .then(result => {
+      const sentiments = result.data.sentiment_count;
+      const rating = result.data.average_rating;
+
+      document.getElementById("avgRating").innerText = rating;
+
+      renderSentimentChart(sentiments);
+    });
 </script>
 
 </body>
