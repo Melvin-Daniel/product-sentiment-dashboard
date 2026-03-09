@@ -1,98 +1,282 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Product Sentiment Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
-    }
-    h1 {
-      text-align: center;
-    }
-    .container {
-      display: flex;
-      gap: 40px;
-      margin-top: 30px;
-    }
-    .box {
-      flex: 1;
-    }
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-    li {
-      margin-bottom: 10px;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 5px;
-    }
-    #insight {
-      margin-top: 10px;
-      font-weight: bold;
-      color: #444;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Product Sentiment Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&family=Orbitron:wght@500&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+margin:0;
+font-family:'Poppins',sans-serif;
+background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
+color:white;
+}
+
+h1{
+text-align:center;
+margin-top:30px;
+font-size:40px;
+font-family:'Orbitron';
+background:linear-gradient(90deg,#ff00ff,#00ffff);
+-webkit-background-clip:text;
+color:transparent;
+}
+
+.searchBox{
+text-align:center;
+margin-top:25px;
+}
+
+.searchBox input{
+padding:10px;
+width:260px;
+border-radius:8px;
+border:none;
+outline:none;
+font-size:16px;
+}
+
+.searchBox button{
+padding:10px 18px;
+border:none;
+border-radius:8px;
+background:#8e2de2;
+color:white;
+font-size:15px;
+cursor:pointer;
+}
+
+.searchBox button:hover{
+background:#a100ff;
+}
+
+.stats{
+text-align:center;
+margin-top:20px;
+font-size:20px;
+}
+
+.dashboard{
+display:flex;
+gap:30px;
+padding:40px;
+}
+
+.card{
+flex:1;
+background:rgba(255,255,255,0.07);
+border-radius:15px;
+padding:25px;
+box-shadow:0 0 20px rgba(255,0,255,0.5);
+}
+
+.card h3{
+font-size:24px;
+margin-bottom:20px;
+color:#ffffff;
+}
+
+ul{
+list-style:none;
+padding:0;
+}
+
+li{
+background:linear-gradient(90deg,#8e2de2,#4a00e0);
+padding:12px;
+margin-bottom:10px;
+border-radius:8px;
+font-size:15px;
+}
+
+#reviewsList{
+max-height:350px;
+overflow-y:auto;
+}
+
+.chartBox{
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+canvas{
+width:420px !important;
+height:420px !important;
+}
+
+</style>
 </head>
+
 <body>
 
-<h1>Product Sentiment Analysis Dashboard</h1>
+<h1>🚀 Product Sentiment Intelligence Dashboard</h1>
 
-<p><b>Average Rating:</b> <span id="avgRating">-</span></p>
-<p id="insight"></p>
-
-<div class="container">
-  <div class="box">
-    <h3>Reviews</h3>
-    <ul id="reviewsList"></ul>
-  </div>
-
-  <div class="box">
-    <h3>Sentiment Distribution</h3>
-    <canvas id="sentimentChart"></canvas>
-  </div>
+<div class="searchBox">
+<input id="productInput" placeholder="Search reviews">
+<button onclick="searchProduct()">Search</button>
 </div>
 
-<script src="visualization/charts.js"></script>
+<div class="stats">
+<span id="avgRating"></span>
+<p id="insight"></p>
+</div>
+
+<div class="dashboard">
+
+<div class="card">
+<h3>📝 Customer Reviews</h3>
+<ul id="reviewsList"></ul>
+</div>
+
+<div class="card chartBox">
+<div>
+<h3>📊 Sentiment Distribution</h3>
+<canvas id="sentimentChart"></canvas>
+</div>
+</div>
+
+</div>
 
 <script>
-  // Fetch reviews
-  fetch("http://127.0.0.1:5000/reviews")
-    .then(res => res.json())
-    .then(data => {
-      const list = document.getElementById("reviewsList");
-      data.forEach(r => {
-        const li = document.createElement("li");
-        li.innerHTML = `<b>${r.sentiment.toUpperCase()}</b> | ⭐ ${r.rating}<br>${r.review_text}`;
-        list.appendChild(li);
-      });
-    });
 
-  // Fetch analytics
-  fetch("http://127.0.0.1:5000/analytics")
-  .then(res => res.json())
-  .then(result => {
+let allReviews=[];
+let chart;
 
-    const sentiments = result.data.sentiment_count;
-    const rating = result.data.average_rating;
+// Load data on page start
+window.onload=function(){
+loadReviews();
+loadAnalytics();
+};
 
-    document.getElementById("avgRating").innerText = rating;
+function loadReviews(){
 
-    renderSentimentChart(sentiments);
+fetch("http://127.0.0.1:5000/reviews")
+.then(res=>res.json())
+.then(data=>{
 
-  });
-=======
-    .then(res => res.json())
-    .then(result => {
-      const sentiments = result.data.sentiment_count;
-      const rating = result.data.average_rating;
+allReviews=data;
+displayReviews(data);
 
-      document.getElementById("avgRating").innerText = rating;
+});
 
-      renderSentimentChart(sentiments);
-    });
+}
+
+function displayReviews(data){
+
+const list=document.getElementById("reviewsList");
+list.innerHTML="";
+
+if(data.length===0){
+const li=document.createElement("li");
+li.innerText="No reviews found.";
+list.appendChild(li);
+return;
+}
+
+data.forEach(r=>{
+
+const li=document.createElement("li");
+
+li.innerHTML=`<b>${r.sentiment.toUpperCase()}</b> | ⭐ ${r.rating}<br>${r.review_text}`;
+
+list.appendChild(li);
+
+});
+
+}
+
+function searchProduct(){
+
+const keyword=document.getElementById("productInput").value.toLowerCase();
+
+const filtered=allReviews.filter(r =>
+r.review_text.toLowerCase().includes(keyword)
+);
+
+displayReviews(filtered);
+
+}
+
+function loadAnalytics(){
+
+fetch("http://127.0.0.1:5000/analytics")
+.then(res=>res.json())
+.then(result=>{
+
+const sentiments=result.data.sentiment_count;
+const rating=result.data.average_rating;
+
+document.getElementById("avgRating").innerText="⭐ Average Rating : "+rating.toFixed(2);
+
+renderInsight(sentiments);
+
+if(chart) chart.destroy();
+
+const ctx=document.getElementById("sentimentChart");
+
+chart=new Chart(ctx,{
+type:"doughnut",
+data:{
+labels:["Positive","Neutral","Negative"],
+datasets:[{
+data:[
+sentiments.positive,
+sentiments.neutral,
+sentiments.negative
+],
+backgroundColor:[
+"#4CAF50",
+"#FFC107",
+"#F44336"
+]
+}]
+},
+options:{
+plugins:{
+legend:{
+labels:{
+color:"white",
+font:{size:16}
+}
+}
+}
+}
+});
+
+});
+
+}
+
+function renderInsight(sentiments){
+
+let max=Math.max(
+sentiments.positive,
+sentiments.neutral,
+sentiments.negative
+);
+
+let message="";
+
+if(max===sentiments.positive){
+message="Most customer reviews are Positive 👍";
+}
+else if(max===sentiments.neutral){
+message="Most customer reviews are Neutral 🙂";
+}
+else{
+message="Most customer reviews are Negative ⚠️";
+}
+
+document.getElementById("insight").innerText=message;
+
+}
+
 </script>
 
 </body>
