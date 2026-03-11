@@ -1,8 +1,10 @@
 import re
-from typing import List, Optional
+from typing import List
 
 import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 
 HEADERS = {"User-Agent": "Mozilla/5.0"}
@@ -23,37 +25,32 @@ def _extract_reviews_from_html(html: str) -> List[str]:
     return reviews
 
 
-def get_amazon_reviews(
-    query: str = "headphones",
-    pages: int = 5,
-    timeout: int = 15,
-    session: Optional[requests.Session] = None,
-) -> List[str]:
-    """
-    Scrape Amazon pages and return a list of extracted review snippets.
+def get_amazon_reviews() -> List[str]:
+    """Scrape Amazon pages and return a list of extracted review snippets."""
+    session = requests.Session()
+    retry = Retry(total=3, backoff_factor=1, status_forcelist=[429, 500, 502, 503, 504])
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
 
-    Args:
-        query: Search keyword used for product discovery.
-        pages: Number of pages to scrape.
-        timeout: HTTP timeout in seconds.
-        session: Optional requests Session for reuse/testing.
-    """
-    client = session or requests.Session()
     reviews: List[str] = []
 
-    for page in range(1, pages + 1):
-        response = client.get(
+    for page in range(1, 6):
+        response = session.get(
             AMAZON_SEARCH_URL,
-            params={"k": query, "page": page},
+            params={"k": "headphones", "page": page},
             headers=HEADERS,
-            timeout=timeout,
+            timeout=15,
         )
-        response.raise_for_status()
+
+        if response.status_code != 200:
+            print(f"Warning: Amazon returned status {response.status_code}")
+            return []
+
         reviews.extend(_extract_reviews_from_html(response.text))
 
     return reviews
 
 
 if __name__ == "__main__":
-    scraped_reviews = get_amazon_reviews()
-    print(f"Scraped {len(scraped_reviews)} review snippets.")
+    print(get_amazon_reviews())
