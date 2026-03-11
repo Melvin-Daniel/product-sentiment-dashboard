@@ -1,34 +1,59 @@
+import re
+from typing import List, Optional
+
 import requests
 from bs4 import BeautifulSoup
-import pandas as pd
 
-headers = {"User-Agent": "Mozilla/5.0"}
 
-data = []
+HEADERS = {"User-Agent": "Mozilla/5.0"}
+AMAZON_SEARCH_URL = "https://www.amazon.in/s"
 
-for page in range(1,6):
 
-    url = f"https://www.amazon.in/s?k=headphones&page={page}"
-    response = requests.get(url, headers=headers)
+def _extract_reviews_from_html(html: str) -> List[str]:
+    """Extract review snippets from Amazon search-result HTML."""
+    soup = BeautifulSoup(html, "lxml")
+    review_nodes = soup.select("span.a-size-base.s-underline-text")
 
-    soup = BeautifulSoup(response.content, "lxml")
+    reviews: List[str] = []
+    for node in review_nodes:
+        text = re.sub(r"\s+", " ", node.get_text(strip=True))
+        if text:
+            reviews.append(text)
 
-    items = soup.select(".s-result-item")
+    return reviews
 
-    for item in items:
 
-        name = item.select_one(".a-size-medium.a-color-base.a-text-normal")
-        price = item.select_one(".a-price-whole")
-        rating = item.select_one(".a-icon-alt")
+def get_amazon_reviews(
+    query: str = "headphones",
+    pages: int = 5,
+    timeout: int = 15,
+    session: Optional[requests.Session] = None,
+) -> List[str]:
+    """
+    Scrape Amazon pages and return a list of extracted review snippets.
 
-        name = name.text if name else "N/A"
-        price = price.text if price else "N/A"
-        rating = rating.text if rating else "N/A"
+    Args:
+        query: Search keyword used for product discovery.
+        pages: Number of pages to scrape.
+        timeout: HTTP timeout in seconds.
+        session: Optional requests Session for reuse/testing.
+    """
+    client = session or requests.Session()
+    reviews: List[str] = []
 
-        data.append([name, price, rating])
+    for page in range(1, pages + 1):
+        response = client.get(
+            AMAZON_SEARCH_URL,
+            params={"k": query, "page": page},
+            headers=HEADERS,
+            timeout=timeout,
+        )
+        response.raise_for_status()
+        reviews.extend(_extract_reviews_from_html(response.text))
 
-df = pd.DataFrame(data, columns=["Product","Price","Rating"])
+    return reviews
 
-df.to_csv("amazon_products.csv", index=False)
 
-print(df.head())
+if __name__ == "__main__":
+    scraped_reviews = get_amazon_reviews()
+    print(f"Scraped {len(scraped_reviews)} review snippets.")
