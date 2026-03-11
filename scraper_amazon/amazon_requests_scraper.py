@@ -1,5 +1,5 @@
 import re
-from typing import List
+from typing import List, Optional
 
 import requests
 from bs4 import BeautifulSoup
@@ -17,24 +17,42 @@ HEADERS = {
 }
 AMAZON_SEARCH_URL = "https://www.amazon.in/s"
 FALLBACK_REVIEWS = [
-    "Great product and good sound quality",
-    "Very bad battery life",
-    "Average performance but acceptable",
+    "Great sound quality",
+    "Battery life is poor",
     "Worth the price",
-    "Poor build quality",
+    "Average performance",
+    "Build quality could be better",
 ]
 
 
 def _extract_reviews_from_html(html: str) -> List[str]:
-    """Extract review snippets from Amazon search-result HTML."""
+    """Extract review-like snippets from Amazon search-result HTML."""
     soup = BeautifulSoup(html, "lxml")
-    review_nodes = soup.select("span.a-size-base.s-underline-text")
+
+    # Amazon HTML varies by request context; keep a broad selector set for resilience.
+    selectors = [
+        "span.a-size-base.s-underline-text",
+        "div.a-row.a-size-small span.a-size-base",
+        "span.a-size-base.a-color-secondary",
+        "span[data-hook='review-body']",
+    ]
 
     reviews: List[str] = []
-    for node in review_nodes:
-        text = re.sub(r"\s+", " ", node.get_text(strip=True))
-        if text:
-            reviews.append(text)
+    seen = set()
+
+    for selector in selectors:
+        for node in soup.select(selector):
+            text = re.sub(r"\s+", " ", node.get_text(strip=True))
+            if not text:
+                continue
+
+            # Skip non-review fragments often found in Amazon pages.
+            if text.lower() in {"sponsored", "prime", "amazon's choice"}:
+                continue
+
+            if text not in seen:
+                seen.add(text)
+                reviews.append(text)
 
     return reviews
 
@@ -42,12 +60,12 @@ def _extract_reviews_from_html(html: str) -> List[str]:
 def _fallback_reviews(reason: str) -> List[str]:
     """Return local fallback reviews when scraping fails."""
     print(f"Warning: {reason}. Falling back to local reviews.")
-    return FALLBACK_REVIEWS.copy()
+    return [str(review) for review in FALLBACK_REVIEWS]
 
 
 def _build_retry_session() -> requests.Session:
     """Create a requests session configured with retry behavior."""
-    session = requests.Session()
+    scraper_session = requests.Session()
     retry = Retry(
         total=3,
         connect=3,
@@ -57,23 +75,25 @@ def _build_retry_session() -> requests.Session:
         allowed_methods=["GET"],
     )
     adapter = HTTPAdapter(max_retries=retry)
-    session.mount("http://", adapter)
-    session.mount("https://", adapter)
-    return session
+    scraper_session.mount("http://", adapter)
+    scraper_session.mount("https://", adapter)
+    return scraper_session
 
 
-def get_amazon_reviews() -> List[str]:
+def get_amazon_reviews(query="headphones", pages=5, timeout=15, session=None) -> List[str]:
     """Scrape Amazon pages and always return a list of review strings."""
+    own_session = session is None
+    scraper_session: Optional[requests.Session] = session or _build_retry_session()
+
     try:
-        session = _build_retry_session()
         reviews: List[str] = []
 
-        for page in range(1, 6):
-            response = session.get(
+        for page in range(1, max(1, int(pages)) + 1):
+            response = scraper_session.get(
                 AMAZON_SEARCH_URL,
-                params={"k": "headphones", "page": page},
+                params={"k": query, "page": page},
                 headers=HEADERS,
-                timeout=15,
+                timeout=timeout,
             )
 
             if response.status_code != 200:
@@ -81,13 +101,19 @@ def get_amazon_reviews() -> List[str]:
 
             reviews.extend(_extract_reviews_from_html(response.text))
 
-        if not reviews:
+        cleaned_reviews = [str(review) for review in reviews if isinstance(review, str) and review.strip()]
+        if not cleaned_reviews:
             return _fallback_reviews("No reviews found in scraped HTML")
 
-        return [str(review) for review in reviews if isinstance(review, str) and review.strip()]
+        return cleaned_reviews
+
     except Exception as exc:  # noqa: BLE001 - scraper must never crash the pipeline.
         return _fallback_reviews(f"Amazon scraping failed with error: {exc}")
+    finally:
+        if own_session and scraper_session is not None:
+            scraper_session.close()
 
 
 if __name__ == "__main__":
-    print(get_amazon_reviews())
+    scraped_reviews = get_amazon_reviews()
+    print(scraped_reviews)
