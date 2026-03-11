@@ -14,7 +14,9 @@ HEADERS = {
     ),
     "Accept-Language": "en-US,en;q=0.9",
 }
+
 AMAZON_SEARCH_URL = "https://www.amazon.in/s"
+
 FALLBACK_REVIEWS = [
     "Great sound quality",
     "Battery life is poor",
@@ -32,8 +34,17 @@ def _extract_reviews_from_html(html: str) -> List[str]:
     seen = set()
 
     for node in soup.select("h2 span"):
-        text = node.get_text().strip()
+        text = node.get_text(strip=True)
+
         if not text:
+            continue
+
+        text_clean = text.lower().replace('"', '').strip()
+
+        if "results for" in text_clean:
+            continue
+
+        if text_clean == "headphones":
             continue
 
         if text not in seen:
@@ -52,6 +63,7 @@ def _fallback_reviews(reason: str) -> List[str]:
 def _build_retry_session() -> requests.Session:
     """Create a requests session configured with retry behavior."""
     scraper_session = requests.Session()
+
     retry = Retry(
         total=3,
         connect=3,
@@ -60,14 +72,23 @@ def _build_retry_session() -> requests.Session:
         status_forcelist=[429, 500, 502, 503, 504],
         allowed_methods=["GET"],
     )
+
     adapter = HTTPAdapter(max_retries=retry)
+
     scraper_session.mount("http://", adapter)
     scraper_session.mount("https://", adapter)
+
     return scraper_session
 
 
-def get_amazon_reviews(query="headphones", pages=5, timeout=15, session=None) -> List[str]:
-    """Scrape Amazon pages and always return a list of review strings."""
+def get_amazon_reviews(
+    query="headphones",
+    pages=5,
+    timeout=15,
+    session=None,
+) -> List[str]:
+    """Scrape Amazon pages and always return a list of text strings."""
+
     own_session = session is None
     scraper_session: Optional[requests.Session] = session or _build_retry_session()
 
@@ -75,6 +96,7 @@ def get_amazon_reviews(query="headphones", pages=5, timeout=15, session=None) ->
         reviews: List[str] = []
 
         for page in range(1, max(1, int(pages)) + 1):
+
             response = scraper_session.get(
                 AMAZON_SEARCH_URL,
                 params={"k": query, "page": page},
@@ -83,7 +105,9 @@ def get_amazon_reviews(query="headphones", pages=5, timeout=15, session=None) ->
             )
 
             if response.status_code != 200:
-                return _fallback_reviews(f"Amazon returned status {response.status_code}")
+                return _fallback_reviews(
+                    f"Amazon returned status {response.status_code}"
+                )
 
             reviews.extend(_extract_reviews_from_html(response.text))
 
@@ -92,15 +116,18 @@ def get_amazon_reviews(query="headphones", pages=5, timeout=15, session=None) ->
             for review in reviews
             if isinstance(review, str) and str(review).strip()
         ]
+
+        # limit results for dashboard
         cleaned_reviews = cleaned_reviews[:20]
 
         if not cleaned_reviews:
             return _fallback_reviews("No reviews found in scraped HTML")
 
-        return [str(review) for review in cleaned_reviews]
+        return cleaned_reviews
 
-    except Exception as exc:  # noqa: BLE001 - scraper must never crash the pipeline.
+    except Exception as exc:
         return _fallback_reviews(f"Amazon scraping failed with error: {exc}")
+
     finally:
         if own_session and scraper_session is not None:
             scraper_session.close()
