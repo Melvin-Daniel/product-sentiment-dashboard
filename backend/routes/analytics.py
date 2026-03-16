@@ -1,9 +1,13 @@
 """
-GET /analytics - aggregated sentiment counts, average rating, total reviews, top keywords.
+Analytics routes:
+- GET /analytics           → overall sentiment, rating, keyword analytics (existing)
+- GET /analytics/products  → per-product sentiment comparison
+- GET /analytics/trends    → sentiment trend over time
 """
 from flask import Blueprint, jsonify
 from services.review_service import get_all_reviews
 from services.sentiment_service import analyze_sentiments
+from services.analytics_service import product_analytics, trend_analytics
 from utils.response import success, error
 import logging
 
@@ -19,3 +23,28 @@ def analytics():
     except Exception as e:
         logging.exception("GET /analytics error")
         return jsonify(error(str(e))), 500
+
+
+@analytics_bp.route("/analytics/products", methods=["GET"])
+def analytics_products():
+    logging.info("GET /analytics/products called")
+    try:
+        reviews = get_all_reviews()
+        data = product_analytics(reviews)
+        return jsonify(success(data))
+    except Exception as e:
+        logging.exception("GET /analytics/products error")
+        return jsonify(error(str(e))), 500
+
+
+@analytics_bp.route("/analytics/trends", methods=["GET"])
+def analytics_trends():
+    logging.info("GET /analytics/trends called")
+    try:
+        reviews = get_all_reviews()
+        data = trend_analytics(reviews)
+        return jsonify(success(data))
+    except Exception as e:
+        logging.exception("GET /analytics/trends error")
+        return jsonify(error(str(e))), 500
+

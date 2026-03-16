@@ -1,12 +1,5 @@
 import json
-import os
-
-DATA_PATH = os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "data",
-    "sample_reviews.json"
-)
+from config import DATA_FILE as DATA_PATH
 
 def get_reviews_from_db():
     """

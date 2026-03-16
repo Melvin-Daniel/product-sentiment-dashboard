@@ -22,5 +22,11 @@
     "review_text": "Really great product!",
     "rating": 4,
     "sentiment": "positive"
+  },
+  {
+    "product": "Apple",
+    "review_text": "It was average",
+    "rating": 3,
+    "sentiment": "neutral"
   }
 ]

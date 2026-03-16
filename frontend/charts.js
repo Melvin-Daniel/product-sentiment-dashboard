@@ -5,16 +5,18 @@
 (function (global) {
   "use strict";
 
-  let chartInstance = null;
+  let sentimentChartInstance = null;
+  let productChartInstance = null;
+  let trendChartInstance = null;
 
   function renderSentimentChart(sentiments, elementId) {
     var el = document.getElementById(elementId || "sentimentChart");
     if (!el) return;
-    if (chartInstance) {
-      chartInstance.destroy();
-      chartInstance = null;
+    if (sentimentChartInstance) {
+      sentimentChartInstance.destroy();
+      sentimentChartInstance = null;
     }
-    chartInstance = new Chart(el, {
+    sentimentChartInstance = new Chart(el, {
       type: "doughnut",
       data: {
         labels: ["Positive", "Neutral", "Negative"],
@@ -45,7 +47,7 @@
         }
       }
     });
-    return chartInstance;
+    return sentimentChartInstance;
   }
 
   function renderInsight(sentiments, elementId) {
@@ -87,6 +89,86 @@
     }).join("");
   }
 
+  function renderProductComparison(products, elementId) {
+    var el = document.getElementById(elementId || "productChart");
+    if (!el) return;
+    if (productChartInstance) {
+      productChartInstance.destroy();
+      productChartInstance = null;
+    }
+    if (!products || !products.length) {
+      return;
+    }
+    var labels = products.map(function (p) { return p.product; });
+    var positives = products.map(function (p) { return p.positive || 0; });
+    var neutrals = products.map(function (p) { return p.neutral || 0; });
+    var negatives = products.map(function (p) { return p.negative || 0; });
+
+    productChartInstance = new Chart(el, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          { label: "Positive", backgroundColor: "#4CAF50", data: positives },
+          { label: "Neutral", backgroundColor: "#FFC107", data: neutrals },
+          { label: "Negative", backgroundColor: "#F44336", data: negatives }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            labels: { color: "white", font: { size: 12 } }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: "white" }
+          },
+          y: {
+            ticks: { color: "white" },
+            beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+
+  function renderTrend(trend, elementId) {
+    var el = document.getElementById(elementId || "trendChart");
+    if (!el) return;
+    if (trendChartInstance) {
+      trendChartInstance.destroy();
+      trendChartInstance = null;
+    }
+    if (!trend || !trend.dates || !trend.dates.length) {
+      return;
+    }
+    trendChartInstance = new Chart(el, {
+      type: "line",
+      data: {
+        labels: trend.dates,
+        datasets: [
+          { label: "Positive", borderColor: "#4CAF50", data: trend.positive || [], tension: 0.2 },
+          { label: "Neutral", borderColor: "#FFC107", data: trend.neutral || [], tension: 0.2 },
+          { label: "Negative", borderColor: "#F44336", data: trend.negative || [], tension: 0.2 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            labels: { color: "white", font: { size: 12 } }
+          }
+        },
+        scales: {
+          x: { ticks: { color: "white" } },
+          y: { ticks: { color: "white" }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
   function escapeHtml(s) {
     var div = document.createElement("div");
     div.textContent = s;
@@ -98,6 +180,8 @@
     renderInsight: renderInsight,
     renderAvgRating: renderAvgRating,
     renderTotalReviews: renderTotalReviews,
-    renderKeywords: renderKeywords
+    renderKeywords: renderKeywords,
+    renderProductComparison: renderProductComparison,
+    renderTrend: renderTrend
   };
 })(typeof window !== "undefined" ? window : this);

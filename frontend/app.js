@@ -83,7 +83,14 @@
       var rating = r.rating != null ? r.rating : "–";
       var product = (r.product || "").trim();
       var productLine = product ? "<small>Product: " + product + "</small><br>" : "";
-      li.innerHTML = "<b>" + sentiment + "</b> | ⭐ " + rating + "<br>" + productLine + text;
+      var fakeProb = typeof r.fake_probability === "number" ? r.fake_probability : 0;
+      var badge = "";
+      if (fakeProb >= 0.6) {
+        badge = '<span class="badge badge-warning">Suspicious (' + (fakeProb * 100).toFixed(0) + '%)</span> ';
+      } else if (fakeProb >= 0.3) {
+        badge = '<span class="badge badge-soft">Check (' + (fakeProb * 100).toFixed(0) + '%)</span> ';
+      }
+      li.innerHTML = badge + "<b>" + sentiment + "</b> | ⭐ " + rating + "<br>" + productLine + text;
       list.appendChild(li);
     });
   }
@@ -169,6 +176,13 @@
           global.DashboardCharts.renderTotalReviews(total);
           global.DashboardCharts.renderKeywords(keywords);
         }
+        // update positive share stat
+        var posShareEl = document.getElementById("positiveShare");
+        if (posShareEl) {
+          var totalSent = sentiments.positive + sentiments.neutral + sentiments.negative;
+          var pct = totalSent ? Math.round((sentiments.positive / totalSent) * 100) : 0;
+          posShareEl.textContent = pct.toString() + "%";
+        }
       })
       .catch(function (err) {
         setLoading(false);
@@ -180,10 +194,16 @@
     setLoading(true);
     Promise.all([
       fetch(API_BASE + "/reviews").then(function (res) { return res.json(); }),
-      fetch(API_BASE + "/analytics").then(function (res) { return res.json(); })
+      fetch(API_BASE + "/analytics").then(function (res) { return res.json(); }),
+      fetch(API_BASE + "/analytics/products").then(function (res) { return res.json(); }),
+      fetch(API_BASE + "/analytics/trends").then(function (res) { return res.json(); }),
+      fetch(API_BASE + "/insights/summary").then(function (res) { return res.json(); })
     ]).then(function (results) {
       var reviewsResult = results[0];
       var analyticsResult = results[1];
+      var productsResult = results[2];
+      var trendsResult = results[3];
+      var insightsResult = results[4];
       setLoading(false);
       if (reviewsResult.status === "error") {
         showError(reviewsResult.message || "Failed to load reviews.");
@@ -208,6 +228,29 @@
           global.DashboardCharts.renderTotalReviews(total);
           global.DashboardCharts.renderKeywords(keywords);
         }
+        var posShareEl = document.getElementById("positiveShare");
+        if (posShareEl) {
+          var totalSent = sentiments.positive + sentiments.neutral + sentiments.negative;
+          var pct = totalSent ? Math.round((sentiments.positive / totalSent) * 100) : 0;
+          posShareEl.textContent = pct.toString() + "%";
+        }
+      }
+
+      if (productsResult.status !== "error" && productsResult.data) {
+        if (global.DashboardCharts) {
+          global.DashboardCharts.renderProductComparison(productsResult.data);
+        }
+      }
+
+      if (trendsResult.status !== "error" && trendsResult.data) {
+        if (global.DashboardCharts) {
+          global.DashboardCharts.renderTrend(trendsResult.data);
+        }
+      }
+
+      if (insightsResult.status !== "error" && insightsResult.data) {
+        var summaryEl = document.getElementById("aiSummary");
+        if (summaryEl) summaryEl.textContent = insightsResult.data.summary || "";
       }
     }).catch(function (err) {
       setLoading(false);

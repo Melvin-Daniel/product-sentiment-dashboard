@@ -1,8 +1,9 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from config import DEBUG, HOST, PORT
 from routes.reviews import reviews_bp
 from routes.analytics import analytics_bp
+from routes.insights import insights_bp
 from utils.logger import setup_logger
 
 # Ensure VADER lexicon is available for sentiment analysis
@@ -23,6 +24,12 @@ logger.info("Starting backend application")
 
 app.register_blueprint(reviews_bp)
 app.register_blueprint(analytics_bp)
+app.register_blueprint(insights_bp)
+
+@app.before_request
+def log_request():
+    logger.info("Request: %s %s", request.method, request.path)
+
 
 @app.route("/health")
 def health():

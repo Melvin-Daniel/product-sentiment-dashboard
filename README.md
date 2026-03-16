@@ -17,23 +17,27 @@ A web-based dashboard that analyzes product reviews, classifies sentiment with *
 
 ```
 frontend/
-  index.html    → structure, styles, script tags
-  app.js        → API calls, state, search/filters, add review, loading
-  charts.js     → Chart.js rendering (doughnut, insight, keywords)
+  index.html    → structure, styles, script tags, layout
+  app.js        → API calls, state, search/filters, add review, loading, insights
+  charts.js     → Chart.js rendering (doughnut, product comparison, trends, keywords)
 
 backend/
   app.py        → Flask app, CORS, NLTK vader_lexicon download, blueprints
-  config.py     → HOST, PORT, DEBUG
+  config.py     → HOST, PORT/API_PORT, DEBUG, DATA_FILE
   routes/
-    reviews.py  → GET /reviews (optional ?sentiment=, ?rating=), POST /reviews
-    analytics.py→ GET /analytics
+    reviews.py   → GET /reviews (optional ?sentiment=, ?rating=), POST /reviews
+    analytics.py → GET /analytics, GET /analytics/products, GET /analytics/trends
+    insights.py  → GET /insights/summary
   services/
     db_service.py         → read/write JSON file
-    review_service.py     → get/add reviews, filtering, normalize review_text
-    sentiment_service.py  → aggregate counts, avg rating, total, keywords
+    review_service.py     → get/add reviews, filtering, normalize review_text, fake score, dates
+    sentiment_service.py  → aggregate counts, avg rating, total, keywords (overall analytics)
+    analytics_service.py  → product comparison + trend analytics
+    keyword_service.py    → shared keyword extraction
+    insights_service.py   → AI-style summary + fake review heuristics
     vader_service.py      → NLTK VADER sentiment label (positive/neutral/negative)
   data/
-    sample_reviews.json   → list of { product, review_text, rating, sentiment }
+    sample_reviews.json   → list of { product, review_text, rating, sentiment, date?, fake_probability? }
 ```
 
 **Request flow:** Browser → `app.js` (API_BASE) → Flask routes → services → JSON file. New reviews get a sentiment label from `vader_service` before being saved.
@@ -136,6 +140,26 @@ Response shape:
 ```
 
 Full request/response details: **docs/contract.md**.
+
+Additional analytics endpoints:
+
+- Product comparison:
+
+```bash
+curl http://127.0.0.1:5000/analytics/products
+```
+
+- Sentiment trends over time:
+
+```bash
+curl http://127.0.0.1:5000/analytics/trends
+```
+
+- AI-style summary:
+
+```bash
+curl http://127.0.0.1:5000/insights/summary
+```
 
 ---
 
