@@ -1,116 +1,175 @@
-Product Sentiment Analysis Dashboard
+# Product Sentiment Dashboard
 
-This project analyzes product reviews, classifies their sentiment, and visualizes the overall sentiment distribution using a web-based dashboard.
+A web-based dashboard that analyzes product reviews, classifies sentiment with **NLTK VADER**, and visualizes sentiment distribution and analytics. Built for a university demo with a Flask backend and vanilla JS frontend.
 
-📌 Project Overview
+---
 
-The Product Sentiment Analysis Dashboard is a web-based application designed to analyze customer product reviews and present sentiment insights visually.
+## Project overview
 
-The system follows a modular, role-based architecture, where backend services, frontend UI, and visualization modules are developed independently and integrated using REST APIs.
+- **Backend:** Flask REST API serving reviews and analytics; sentiment computed server-side with NLTK VADER.
+- **Frontend:** Single-page app (HTML + CSS + JS) with Chart.js for visualizations.
+- **Data:** Stored in a JSON file (`backend/data/sample_reviews.json`); no database required.
+- **Features:** List reviews, filter by sentiment/rating, search, add new reviews (sentiment auto-computed), view sentiment distribution, average rating, total reviews, and top keywords.
 
-This project demonstrates real-world concepts such as API-driven architecture, frontend–backend integration, and data visualization.
+---
 
-🧩 Project Structure
-Product-Sentiment-Analysis-Dashboard/
-│
-├── backend/
-│   └── Flask REST API for reviews and analytics
-│
-├── frontend/
-│   ├── index.html
-│   └── visualization/
-│       └── charts.js
-│
-├── scraper_amazon/
-│   └── Module reserved for Amazon review scraping (future enhancement)
-│
-├── scraper_flipkart/
-│   └── Module reserved for Flipkart review scraping (future enhancement)
-│
-├── sentiment/
-│   └── Module reserved for sentiment analysis logic (future enhancement)
-│
-├── database/
-│   └── Database schema and data handling logic
-│
-├── docs/
-│   └── contract.md
-│
-└── README.md
-🔌 API Endpoints
-GET /reviews
+## Architecture
 
-Returns product reviews along with sentiment labels.
+```
+frontend/
+  index.html    → structure, styles, script tags
+  app.js        → API calls, state, search/filters, add review, loading
+  charts.js     → Chart.js rendering (doughnut, insight, keywords)
 
-GET /analytics
+backend/
+  app.py        → Flask app, CORS, NLTK vader_lexicon download, blueprints
+  config.py     → HOST, PORT, DEBUG
+  routes/
+    reviews.py  → GET /reviews (optional ?sentiment=, ?rating=), POST /reviews
+    analytics.py→ GET /analytics
+  services/
+    db_service.py         → read/write JSON file
+    review_service.py     → get/add reviews, filtering, normalize review_text
+    sentiment_service.py  → aggregate counts, avg rating, total, keywords
+    vader_service.py      → NLTK VADER sentiment label (positive/neutral/negative)
+  data/
+    sample_reviews.json   → list of { product, review_text, rating, sentiment }
+```
 
-Returns aggregated sentiment counts and average product rating.
+**Request flow:** Browser → `app.js` (API_BASE) → Flask routes → services → JSON file. New reviews get a sentiment label from `vader_service` before being saved.
 
-API request and response formats are defined in docs/contract.md.
+---
 
-📊 Data Visualization
+## How to run
 
-Sentiment analytics are visualized using Chart.js, including:
+### 1. Backend (Flask)
 
-Pie chart for sentiment distribution
+```bash
+# From project root
+cd backend
+pip install -r ../requirements.txt
+```
 
-Average product rating display
+If you use a virtual environment (recommended):
 
-Visualization logic is separated into a dedicated module under:
+```bash
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+# source venv/bin/activate
+pip install -r ../requirements.txt
+```
 
-frontend/visualization/charts.js
-🛠️ Technologies Used
+The backend automatically runs `nltk.download('vader_lexicon')` on first import. To pre-download (e.g. offline use), run once:
 
-Backend: Python, Flask, REST API
+```bash
+python -c "import nltk; nltk.download('vader_lexicon')"
+```
 
-Frontend: HTML, CSS, JavaScript
+Start the server (run from the `backend` folder so imports resolve correctly):
 
-Visualization: Chart.js
-
-Data Format: JSON
-
-Architecture: Modular, role-based
-
-Tools: Git, GitHub
-
-🚀 How to Run the Project
-Backend
+```bash
 cd backend
 python app.py
+```
 
-The Flask server runs on http://127.0.0.1:5000.
+The API runs at **http://127.0.0.1:5000**.
 
-Frontend
+### 2. Frontend
 
-Navigate to the frontend/ directory.
+- Open `frontend/index.html` in a browser (double-click or “Open with Live Server” in VS Code).
+- The page uses `API_BASE = "http://127.0.0.1:5000"` in `app.js`. Change this if your backend runs elsewhere.
 
-Open index.html using Live Server or directly in a web browser.
+**Note:** If you open the file via `file://`, some browsers may block requests to `http://127.0.0.1:5000`. Use a local server (e.g. Live Server) or run the frontend from the same origin if needed.
 
-The frontend automatically fetches data from the backend APIs.
+---
 
-📈 Output
+## Example API calls
 
-Displays product reviews with sentiment labels
+**Health check**
 
-Visualizes sentiment distribution using a pie chart
+```bash
+curl http://127.0.0.1:5000/health
+```
 
-Shows average product rating
+**Get all reviews**
 
-Frontend and backend are integrated using REST APIs with CORS enabled
+```bash
+curl http://127.0.0.1:5000/reviews
+```
 
-🔮 Future Enhancements
+**Get reviews filtered by sentiment and rating**
 
-Implement live review scraping from Amazon and Flipkart
+```bash
+curl "http://127.0.0.1:5000/reviews?sentiment=positive"
+curl "http://127.0.0.1:5000/reviews?rating=5"
+curl "http://127.0.0.1:5000/reviews?sentiment=negative&rating=2"
+```
 
-Integrate NLP-based sentiment analysis
+**Add a review** (sentiment is computed by the backend)
 
-Add database persistence
+```bash
+curl -X POST http://127.0.0.1:5000/reviews \
+  -H "Content-Type: application/json" \
+  -d "{\"product\":\"Demo Product\",\"rating\":4,\"review_text\":\"Really good quality and fast delivery.\"}"
+```
 
-Deploy the application to the cloud
+**Get analytics**
 
-Enhance UI and analytics features
+```bash
+curl http://127.0.0.1:5000/analytics
+```
 
-✅ Conclusion
+Response shape:
 
-The Product Sentiment Analysis Dashboard demonstrates a clean backend-driven architecture integrated with frontend visualization.
-The project is designed to be extensible, scalable, and suitable for real-world sentiment analysis use cases.
+```json
+{
+  "status": "success",
+  "data": {
+    "sentiment_count": { "positive": 0, "neutral": 0, "negative": 0 },
+    "average_rating": 0.0,
+    "total_reviews": 0,
+    "top_keywords": [ { "word": "string", "count": 0 } ]
+  }
+}
+```
+
+Full request/response details: **docs/contract.md**.
+
+---
+
+## Configurable API base
+
+In **frontend/app.js**, the first line of the script sets:
+
+```javascript
+var API_BASE = "http://127.0.0.1:5000";
+```
+
+Change this to your backend URL (e.g. for production or another machine).
+
+---
+
+## Error handling
+
+- **Backend:** Routes return JSON with `{ "status": "error", "message": "..." }` and appropriate status codes (400 for validation, 500 for server errors). Unhandled exceptions are caught by a global handler and returned as JSON.
+- **Frontend:** Failed fetches show a message in `#errorMessage`; loading state is toggled so the UI does not assume data is present.
+
+---
+
+## Tech stack
+
+| Layer     | Technology        |
+|----------|-------------------|
+| Backend  | Python 3, Flask, Flask-CORS |
+| Frontend | HTML, CSS, JavaScript (no framework) |
+| Charts   | Chart.js (CDN)    |
+| Sentiment| NLTK VADER        |
+| Data     | JSON file         |
+
+---
+
+## License and purpose
+
+This project is for educational/demo use. Adjust as needed for your course or deployment environment.

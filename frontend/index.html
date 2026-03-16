@@ -1,283 +1,213 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Product Sentiment Dashboard</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&family=Orbitron:wght@500&display=swap" rel="stylesheet">
-
-<style>
-
-body{
-margin:0;
-font-family:'Poppins',sans-serif;
-background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);
-color:white;
-}
-
-h1{
-text-align:center;
-margin-top:30px;
-font-size:40px;
-font-family:'Orbitron';
-background:linear-gradient(90deg,#ff00ff,#00ffff);
--webkit-background-clip:text;
-color:transparent;
-}
-
-.searchBox{
-text-align:center;
-margin-top:25px;
-}
-
-.searchBox input{
-padding:10px;
-width:260px;
-border-radius:8px;
-border:none;
-outline:none;
-font-size:16px;
-}
-
-.searchBox button{
-padding:10px 18px;
-border:none;
-border-radius:8px;
-background:#8e2de2;
-color:white;
-font-size:15px;
-cursor:pointer;
-}
-
-.searchBox button:hover{
-background:#a100ff;
-}
-
-.stats{
-text-align:center;
-margin-top:20px;
-font-size:20px;
-}
-
-.dashboard{
-display:flex;
-gap:30px;
-padding:40px;
-}
-
-.card{
-flex:1;
-background:rgba(255,255,255,0.07);
-border-radius:15px;
-padding:25px;
-box-shadow:0 0 20px rgba(255,0,255,0.5);
-}
-
-.card h3{
-font-size:24px;
-margin-bottom:20px;
-color:#ffffff;
-}
-
-ul{
-list-style:none;
-padding:0;
-}
-
-li{
-background:linear-gradient(90deg,#8e2de2,#4a00e0);
-padding:12px;
-margin-bottom:10px;
-border-radius:8px;
-font-size:15px;
-}
-
-#reviewsList{
-max-height:350px;
-overflow-y:auto;
-}
-
-.chartBox{
-display:flex;
-justify-content:center;
-align-items:center;
-}
-
-canvas{
-width:420px !important;
-height:420px !important;
-}
-
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Sentiment Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      color: white;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 2rem;
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(90deg, #ff00ff, #00ffff);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 20px;
+      padding: 0 16px;
+    }
+    .toolbar input, .toolbar select, .toolbar button {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+    }
+    .toolbar input { width: 200px; }
+    .toolbar select { min-width: 120px; cursor: pointer; }
+    .toolbar button {
+      background: #8e2de2;
+      color: white;
+      cursor: pointer;
+    }
+    .toolbar button:hover { background: #a100ff; }
+    #loadingIndicator {
+      display: none;
+      text-align: center;
+      padding: 12px;
+      color: #00ffff;
+    }
+    #errorMessage {
+      display: none;
+      text-align: center;
+      padding: 10px;
+      background: rgba(244, 67, 54, 0.3);
+      border-radius: 8px;
+      margin: 10px 20px;
+    }
+    .stats {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+    .stats span, .stats p { margin: 4px 0; }
+    #insight { font-weight: 500; }
+    .dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      flex: 1;
+      min-width: 280px;
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 15px;
+      padding: 24px;
+      box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+    }
+    .card h3 {
+      font-size: 1.25rem;
+      margin-bottom: 16px;
+      color: #fff;
+    }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li {
+      background: linear-gradient(90deg, #8e2de2, #4a00e0);
+      padding: 12px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    li.empty { background: rgba(255,255,255,0.1); color: #aaa; }
+    #reviewsList { max-height: 360px; overflow-y: auto; }
+    .chartBox {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .chartBox canvas { max-width: 100%; height: auto !important; }
+    .add-review {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+    .add-review label { display: block; margin-top: 10px; margin-bottom: 4px; font-size: 14px; }
+    .add-review input, .add-review select, .add-review textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: none;
+      font-size: 14px;
+    }
+    .add-review textarea { min-height: 80px; resize: vertical; }
+    .add-review button {
+      margin-top: 12px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: #4CAF50;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .add-review button:hover { background: #43a047; }
+    #submitReviewMessage { margin-top: 8px; font-size: 14px; }
+    #keywordsList .kw-word { font-weight: 500; }
+    #keywordsList .kw-count { opacity: 0.9; margin-left: 6px; }
+  </style>
 </head>
-
 <body>
 
-<h1>🚀 Product Sentiment Intelligence Dashboard</h1>
+  <h1>Product Sentiment Intelligence Dashboard</h1>
 
-<div class="searchBox">
-<input id="productInput" placeholder="Search reviews">
-<button onclick="searchProduct()">Search</button>
-</div>
+  <div id="loadingIndicator">Loading…</div>
+  <div id="errorMessage"></div>
 
-<div class="stats">
-<span id="avgRating"></span>
-<p id="insight"></p>
-</div>
+  <div class="toolbar">
+    <input id="productInput" placeholder="Search reviews" aria-label="Search reviews">
+    <button type="button" id="searchBtn">Search</button>
+    <select id="sentimentFilter" aria-label="Filter by sentiment">
+      <option value="">All sentiments</option>
+      <option value="positive">Positive</option>
+      <option value="neutral">Neutral</option>
+      <option value="negative">Negative</option>
+    </select>
+    <select id="ratingFilter" aria-label="Filter by rating">
+      <option value="">All ratings</option>
+      <option value="5">5 stars</option>
+      <option value="4">4 stars</option>
+      <option value="3">3 stars</option>
+      <option value="2">2 stars</option>
+      <option value="1">1 star</option>
+    </select>
+    <button type="button" id="filterBtn">Apply filters</button>
+  </div>
 
-<div class="dashboard">
+  <div class="stats">
+    <span id="avgRating">Average Rating: –</span>
+    <span id="totalReviews">Total Reviews: 0</span>
+    <p id="insight">–</p>
+  </div>
 
-<div class="card">
-<h3>📝 Customer Reviews</h3>
-<ul id="reviewsList"></ul>
-</div>
+  <div class="dashboard">
+    <div class="card">
+      <h3>Customer Reviews</h3>
+      <ul id="reviewsList"></ul>
+    </div>
+    <div class="card chartBox">
+      <div>
+        <h3>Sentiment Distribution</h3>
+        <canvas id="sentimentChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Top Keywords</h3>
+      <ul id="keywordsList"><li>No keywords yet.</li></ul>
+      <div class="add-review">
+        <h3>Add a review</h3>
+        <label for="newReviewProduct">Product (optional)</label>
+        <input type="text" id="newReviewProduct" placeholder="Product name">
+        <label for="newReviewRating">Rating (1–5)</label>
+        <select id="newReviewRating">
+          <option value="5">5</option>
+          <option value="4">4</option>
+          <option value="3" selected>3</option>
+          <option value="2">2</option>
+          <option value="1">1</option>
+        </select>
+        <label for="newReviewText">Review text</label>
+        <textarea id="newReviewText" placeholder="Write your review…" required></textarea>
+        <button type="button" id="submitReviewBtn">Submit review</button>
+        <p id="submitReviewMessage"></p>
+      </div>
+    </div>
+  </div>
 
-<div class="card chartBox">
-<div>
-<h3>📊 Sentiment Distribution</h3>
-<canvas id="sentimentChart"></canvas>
-</div>
-</div>
-
-</div>
-
-<script>
-
-let allReviews=[];
-let chart;
-
-// Load data on page start
-window.onload=function(){
-loadReviews();
-loadAnalytics();
-};
-
-function loadReviews(){
-
-fetch("http://127.0.0.1:5000/reviews")
-.then(res=>res.json())
-.then(data=>{
-
-allReviews=data;
-displayReviews(data);
-
-});
-
-}
-
-function displayReviews(data){
-
-const list=document.getElementById("reviewsList");
-list.innerHTML="";
-
-if(data.length===0){
-const li=document.createElement("li");
-li.innerText="No reviews found.";
-list.appendChild(li);
-return;
-}
-
-data.forEach(r=>{
-
-const li=document.createElement("li");
-
-li.innerHTML=`<b>${r.sentiment.toUpperCase()}</b> | ⭐ ${r.rating}<br>${r.review_text}`;
-
-list.appendChild(li);
-
-});
-
-}
-
-function searchProduct(){
-
-const keyword=document.getElementById("productInput").value.toLowerCase();
-
-const filtered=allReviews.filter(r =>
-r.review_text.toLowerCase().includes(keyword)
-);
-
-displayReviews(filtered);
-
-}
-
-function loadAnalytics(){
-
-fetch("http://127.0.0.1:5000/analytics")
-.then(res=>res.json())
-.then(result=>{
-
-const sentiments=result.data.sentiment_count;
-const rating=result.data.average_rating;
-
-document.getElementById("avgRating").innerText="⭐ Average Rating : "+rating.toFixed(2);
-
-renderInsight(sentiments);
-
-if(chart) chart.destroy();
-
-const ctx=document.getElementById("sentimentChart");
-
-chart=new Chart(ctx,{
-type:"doughnut",
-data:{
-labels:["Positive","Neutral","Negative"],
-datasets:[{
-data:[
-sentiments.positive,
-sentiments.neutral,
-sentiments.negative
-],
-backgroundColor:[
-"#4CAF50",
-"#FFC107",
-"#F44336"
-]
-}]
-},
-options:{
-plugins:{
-legend:{
-labels:{
-color:"white",
-font:{size:16}
-}
-}
-}
-}
-});
-
-});
-
-}
-
-function renderInsight(sentiments){
-
-let max=Math.max(
-sentiments.positive,
-sentiments.neutral,
-sentiments.negative
-);
-
-let message="";
-
-if(max===sentiments.positive){
-message="Most customer reviews are Positive 👍";
-}
-else if(max===sentiments.neutral){
-message="Most customer reviews are Neutral 🙂";
-}
-else{
-message="Most customer reviews are Negative ⚠️";
-}
-
-document.getElementById("insight").innerText=message;
-
-}
-
-</script>
-
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

@@ -1,17 +1,26 @@
 [
   {
-    "review": "Great product, very useful",
+    "product": "Sample Product",
+    "review_text": "Great product, very useful",
     "rating": 5,
     "sentiment": "positive"
   },
   {
-    "review": "Average quality",
+    "product": "Sample Product",
+    "review_text": "Average quality",
     "rating": 3,
     "sentiment": "neutral"
   },
   {
-    "review": "Not worth the price",
+    "product": "Sample Product",
+    "review_text": "Not worth the price",
     "rating": 2,
     "sentiment": "negative"
+  },
+  {
+    "product": "Test",
+    "review_text": "Really great product!",
+    "rating": 4,
+    "sentiment": "positive"
   }
 ]
